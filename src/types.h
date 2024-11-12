@@ -5,6 +5,8 @@
 #include <string_view>
 #include <memory>
 
+// Type aliases similar to cppfront
+
 namespace st {
 
 using i8 = std::int8_t;

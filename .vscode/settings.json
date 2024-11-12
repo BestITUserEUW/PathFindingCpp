@@ -75,6 +75,7 @@
         "condition_variable": "cpp",
         "forward_list": "cpp",
         "functional": "cpp",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "typeindex": "cpp"
     }
 }

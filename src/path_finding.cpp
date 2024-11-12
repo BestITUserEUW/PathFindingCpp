@@ -123,7 +123,7 @@ auto FindPath(const Point &src, const Point &dest, const Size &bounds, const Poi
     }
 }
 
-auto PathAlgorithmToString(PathAlgorithm algo) -> std::string_view {
+auto PathAlgorithmToString(PathAlgorithm algo) -> string_view {
     switch (algo) {
         case PathAlgorithm::AStar:
             return "AStar";

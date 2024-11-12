@@ -10,8 +10,8 @@
 
 namespace st::argparse {
 namespace {
-bool HasArgument(char **begin, char **end, std::string_view option) { return std::find(begin, end, option) != end; }
-auto GetArgumentValue(char **begin, char **end, std::string_view option) -> std::string {
+bool HasArgument(char **begin, char **end, string_view option) { return std::find(begin, end, option) != end; }
+auto GetArgumentValue(char **begin, char **end, string_view option) -> std::string {
     char **itr = std::find(begin, end, option);
     if (itr != end && ++itr != end) {
         return std::string(*itr);
@@ -44,7 +44,7 @@ void PrintHelpMessage() {
     std::println("{}", ss.str());
 }
 
-auto ParseArguments(int argc, char *argv[]) -> std::unique_ptr<Args> {
+auto ParseArguments(int argc, char *argv[]) -> unique_ptr<Args> {
     auto args = std::make_unique<Args>();
     args->monitor_size = helpers::GetTerminalSize();
     args->thread_count = std::thread::hardware_concurrency();

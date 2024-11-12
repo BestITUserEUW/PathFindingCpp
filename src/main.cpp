@@ -14,6 +14,7 @@
 #include "argparse.h"
 #include "windows_helpers.h"
 #include "profiler.h"
+#include "types.h"
 
 using namespace st;
 
@@ -76,7 +77,7 @@ void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
                                   PathAlgorithmToString(algo)));
 
     Profiler profiler{};
-    uint64_t completed_missions{};
+    u64 completed_missions{};
     while (!stoken.stop_requested()) {
         profiler.Start();
         std::erase_if(runners,

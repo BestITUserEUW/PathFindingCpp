@@ -3,6 +3,7 @@
 #include <vector>
 #include <string_view>
 
+#include "types.h"
 #include "point.h"
 
 namespace st {
@@ -20,5 +21,5 @@ auto FindPath(const Point &src,
               const PointVec &obstacles,
               PathAlgorithm algo = PathAlgorithm::AStar) -> PointVec;
 
-auto PathAlgorithmToString(PathAlgorithm algo) -> std::string_view;
+auto PathAlgorithmToString(PathAlgorithm algo) -> string_view;
 }  // namespace st

@@ -21,6 +21,7 @@ public:
 
     void Reset() {
         start_ = {};
+        elapsed_ = {};
         elapsed_sum_ = 0;
         iterations_ = 0;
     }

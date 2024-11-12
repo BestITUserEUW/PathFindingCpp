@@ -4,20 +4,21 @@
 #include <chrono>
 #include <memory>
 
+#include "types.h"
 #include "point.h"
 #include "path_finding.h"
 
 namespace st::argparse {
 
 struct Args {
-    static constexpr std::string_view khelp = "--help";
-    static constexpr std::string_view kWidth = "--width";
-    static constexpr std::string_view kHeight = "--height";
-    static constexpr std::string_view kThreads = "--threads";
-    static constexpr std::string_view kEntities = "--entities";
-    static constexpr std::string_view kObstacles = "--obstacles";
-    static constexpr std::string_view kLoopTime = "--loopTime";
-    static constexpr std::string_view kAlgorithm = "--algorithm";
+    static constexpr string_view khelp = "--help";
+    static constexpr string_view kWidth = "--width";
+    static constexpr string_view kHeight = "--height";
+    static constexpr string_view kThreads = "--threads";
+    static constexpr string_view kEntities = "--entities";
+    static constexpr string_view kObstacles = "--obstacles";
+    static constexpr string_view kLoopTime = "--loopTime";
+    static constexpr string_view kAlgorithm = "--algorithm";
 
     static constexpr int kDefaultEntities = 20;
     static constexpr int kDefaultLoopTime = 20;
@@ -32,6 +33,6 @@ struct Args {
 };
 
 void PrintHelpMessage();
-auto ParseArguments(int argc, char *argv[]) -> std::unique_ptr<Args>;
+auto ParseArguments(int argc, char *argv[]) -> unique_ptr<Args>;
 
 }  // namespace st::argparse
