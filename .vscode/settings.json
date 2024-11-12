@@ -1,6 +1,6 @@
 {
     "editor.formatOnSave": true,
-    "clang-format.executable": "D:\\clang-format.exe",
+    "clang-format.executable": "D:\\Program Files\\clang-format.exe",
     "files.associations": {
         "ratio": "cpp",
         "xmemory": "cpp",

@@ -5,7 +5,12 @@ project(PathFinding)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT /O2")
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT /O2")
+endif()
 
 find_package(Threads REQUIRED)
 
@@ -22,3 +27,19 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	Threads::Threads
 )
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+	stdc++exp
+)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+	-static-libstdc++ -static-libgcc
+)
+
+target_link_options(${PROJECT_NAME} PRIVATE
+	-s -g0
+)
+
+endif()

@@ -16,7 +16,7 @@ Follow the steps below to build and run **PathFindingCpp**.
 
 - **CMake** (version 3.16 or later recommended)
 - **C++ 23-compatible compiler**
-- **MSVC (Microsoft Visual C++)**: Required for building this project. Ensure that your MSVC installation is up to date.
+- **MSVC (Microsoft Visual C++)** or **Mingw**: Required for building this project. Ensure that your MSVC installation is up to date.
 
 ### Building the Project
 
@@ -50,7 +50,7 @@ This command provides usage instructions and available command-line options.
 
 ### Additional Information
 
-- Launch program from command line rather than directly invoking and pass `--height` and `--width` to resolve #1
+- Launch program from command line rather than directly invoking and pass `--height` to resolve #1
 - Big thanks to [bshoshany](https://github.com/bshoshany) checkout his [threadpool](https://github.com/bshoshany/thread-pool) that i am using.
 
 ### Todo

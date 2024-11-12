@@ -4,6 +4,7 @@
 #include <print>
 #include <future>
 #include <signal.h>
+#include <ranges>
 
 #include "monitor.h"
 #include "entity.h"
@@ -37,14 +38,14 @@ auto GenerateObstacles(const Size &bounds, size_t num) -> PointVec {
     std::uniform_int_distribution<int> ygen(0, bounds.height - 1);
     PointVec points;
     points.reserve(num);
-    std::ranges::generate_n(std::back_inserter(points), num, [&] { return Point{xgen(rng), ygen(rng)}; });
+    std::generate_n(std::back_inserter(points), num, [&] { return Point{xgen(rng), ygen(rng)}; });
     return points;
 }
 
 auto GenerateEntities(const Size &bounds, size_t num) {
     std::vector<Entity> entities;
     entities.reserve(num);
-    std::ranges::generate_n(std::back_inserter(entities), num, [&] { return Entity::Create(CreateRandPoint(bounds)); });
+    std::generate_n(std::back_inserter(entities), num, [&] { return Entity::Create(CreateRandPoint(bounds)); });
     return entities;
 }
 
