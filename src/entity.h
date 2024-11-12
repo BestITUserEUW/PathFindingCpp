@@ -21,7 +21,7 @@ public:
     static auto Create(const Point &start) -> Entity;
 
 private:
-    static constexpr size_t kTrailSize = 50;
+    static constexpr size_t kTrailSize = 20;
 
     Shape shape_;
     Point pos_;

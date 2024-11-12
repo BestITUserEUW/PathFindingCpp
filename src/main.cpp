@@ -115,10 +115,10 @@ void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
         }
         monitor.Render();
         profiler.Stop();
-        monitor.SetHeader2(
-            std::format("Info: Executing: {}/{} Finding paths: {}/{} Completed: {} Iter time: {}ms avg: {}ms",
-                        runners.size(), entities.size(), pending.size(), entities.size(), completed_missions,
-                        profiler.GetElapsedMs().count(), profiler.GetAverageMs()));
+        monitor.SetHeader2(std::format(
+            "Info: Executing: {:04}/{:04} Finding paths: {:04}/{:04} Completed: {:04} Iter time: {:02}ms avg: {:02}ms",
+            runners.size(), entities.size(), pending.size(), entities.size(), completed_missions,
+            profiler.GetElapsedMs().count(), profiler.GetAverageMs()));
         std::this_thread::sleep_for(loop_time);
     }
 
