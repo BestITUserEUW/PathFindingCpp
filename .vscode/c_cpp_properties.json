@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "PathFinding",
+            "cppStandard": "c++23",
+            "compilerPath": "${default}",
+            "intelliSenseMode": "${default}"
+        }
+    ],
+    "version": 4
+}
