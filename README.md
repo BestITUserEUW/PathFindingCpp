@@ -50,10 +50,9 @@ This command provides usage instructions and available command-line options.
 
 ### Additional Information
 
-- Launch program from command line rather than directly invoking and pass `--height` to resolve #1
+- Launch program from command line rather than directly invoking and pass `--height`
 - Big thanks to [bshoshany](https://github.com/bshoshany) checkout his [threadpool](https://github.com/bshoshany/thread-pool) that i am using.
 
 ### Todo
 
-- #1 Fix too large height reported by `GetConsoleScreenBufferInfo`
-- #2 Cleanup MainLoop and layout functionality to other functions for better understanding
+- Fix too large height reported by `GetConsoleScreenBufferInfo`
