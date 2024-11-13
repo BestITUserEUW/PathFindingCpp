@@ -4,13 +4,6 @@ project(PathFinding)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT /O2")
-endif()
 
 find_package(Threads REQUIRED)
 
@@ -19,9 +12,7 @@ add_executable(${PROJECT_NAME}
 	src/monitor.cpp
 	src/path_finding.cpp
 	src/entity.cpp
-	src/mission_runner.cpp
 	src/argparse.cpp
-	src/windows_helpers.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -35,11 +26,21 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE
-	-static-libstdc++ -static-libgcc
+	-static-libstdc++ 
+	-static-libgcc
+	-O3
 )
 
 target_link_options(${PROJECT_NAME} PRIVATE
-	-s -g0
+	-s
+	-g0
+)
+
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+	/MT 
+	/O2
 )
 
 endif()

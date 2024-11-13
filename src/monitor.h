@@ -4,17 +4,19 @@
 #include <string>
 
 #include "point.h"
+#include "drawer.h"
 
 namespace st {
-class Monitor {
+class Monitor : public Drawer {
 public:
-    using PixelMap = std::vector<std::vector<char>>;
+    using Row = std::string;
+    using PixelMap = std::vector<Row>;
 
     explicit Monitor(Size size);
 
     void Render();
-    void SetPixel(const Point &pos, char ch);
-    void ClearPixel(const Point &pos);
+    void SetPixel(const Point &pos, char ch) override;
+    void ClearPixel(const Point &pos) override;
     char GetPixel(const Point &pos);
     void SetText(const Point &begin, const std::string &text, bool diagonal = false);
     void SetTitle(const std::string &title);
@@ -24,9 +26,8 @@ public:
     Size size() const { return size_; }
 
 private:
-    static constexpr char kOutline = '+';
-    static constexpr char kEmptyPixel = ' ';
-
+    void *stdout_handle_;
+    std::string out_buffer_;
     Size size_;
     PixelMap pixel_map_;
     std::string title_;

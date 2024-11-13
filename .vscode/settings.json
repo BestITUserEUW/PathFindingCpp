@@ -76,6 +76,10 @@
         "forward_list": "cpp",
         "functional": "cpp",
         "csignal": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "xtree": "cpp"
     }
 }

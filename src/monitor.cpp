@@ -1,23 +1,17 @@
 #include "monitor.h"
 
 #include <cassert>
-#include <sstream>
-#include <iomanip>
+#include <format>
 
-#include "windows_helpers.h"
+#include <windows.h>
 
 namespace st {
 namespace {
 
-void WriteStdout(const std::string &str) {
-    std::fwrite(str.data(), sizeof(char), str.size(), stdout);
-    std::fflush(stdout);
-}
-
 auto CreatePixelMap(Size size, char init) -> Monitor::PixelMap {
     Monitor::PixelMap map;
     for (int i = 0; i < size.height; i++) {
-        std::vector<char> row;
+        Monitor::Row row;
         row.resize(size.width, init);
         map.push_back(std::move(row));
     }
@@ -27,25 +21,22 @@ auto CreatePixelMap(Size size, char init) -> Monitor::PixelMap {
 }  // namespace
 
 Monitor::Monitor(Size size)
-    : size_(size), pixel_map_{CreatePixelMap(size, kEmptyPixel)}, title_{"Monitor"}, header_{} {}
+    : size_(size), pixel_map_{CreatePixelMap(size, ' ')}, title_{"Monitor"}, header_{}, out_buffer_{} {
+    stdout_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
+}
 
 void Monitor::Render() {
-    helpers::SetCursorPosition(0, 0);
-    std::stringstream buffer;
-    buffer << std::setw((size_.width / 2)) << title_ << "\n";
-    buffer << header_ << std::setfill(' ') << std::setw((size_.width - header_.size())) << "\n";
-    buffer << header2_ << std::setfill(' ') << std::setw((size_.width - header2_.size())) << "\n";
-    buffer << std::setfill(kOutline) << std::setw(pixel_map_[0].size()) << "\n";
+    SetConsoleCursorPosition(stdout_handle_, COORD{0, 0});
 
-    for (const auto &x : pixel_map_) {
-        buffer << kOutline;
-        for (const char ch : x) {
-            buffer << ch;
-        }
-        buffer << kOutline << "\n";
+    out_buffer_.clear();
+    std::format_to(std::back_inserter(out_buffer_), "{:^{}}\n {}\n {}\n {:+^{}}\n", title_, size_.width, header_,
+                   header2_, "", size_.width);
+    for (const auto &row : pixel_map_) {
+        std::format_to(std::back_inserter(out_buffer_), "+{}+\n", row);
     }
-    buffer << std::setfill(kOutline) << std::setw(pixel_map_[0].size()) << "\n";
-    WriteStdout(buffer.str());
+    std::format_to(std::back_inserter(out_buffer_), "{:+^{}}\n", "", size_.width);
+    DWORD n;
+    WriteConsole(stdout_handle_, out_buffer_.data(), static_cast<DWORD>(out_buffer_.size()), &n, {});
 }
 
 void Monitor::SetPixel(const Point &pos, char ch) {
@@ -55,7 +46,7 @@ void Monitor::SetPixel(const Point &pos, char ch) {
 
 void Monitor::ClearPixel(const Point &pos) {
     assert(IsValid(pos) && "Boundary violation!");
-    pixel_map_[pos.y][pos.x] = kEmptyPixel;
+    pixel_map_[pos.y][pos.x] = ' ';
 }
 
 char Monitor::GetPixel(const Point &pos) {

@@ -5,23 +5,17 @@
 #include <future>
 #include <signal.h>
 #include <ranges>
+#include <algorithm>
 
 #include "monitor.h"
 #include "entity.h"
-#include "obstacle.h"
 #include "path_finding.h"
-#include "mission_runner.h"
 #include "thread_pool.h"
 #include "argparse.h"
-#include "windows_helpers.h"
 #include "profiler.h"
 #include "types.h"
 
 using namespace st;
-
-struct Stack {
-    /* data */
-};
 
 auto CreateRandPoint(Size size) -> Point {
     std::random_device rd;
@@ -31,7 +25,7 @@ auto CreateRandPoint(Size size) -> Point {
     return Point{xgen(rng), ygen(rng)};
 }
 
-auto GenerateObstacles(const Size &bounds, size_t num) -> PointVec {
+auto CreateObstacles(const Size &bounds, size_t num) -> PointVec {
     std::random_device rd;
     std::mt19937 rng(rd());
     std::uniform_int_distribution<int> xgen(0, bounds.width - 1);
@@ -42,31 +36,29 @@ auto GenerateObstacles(const Size &bounds, size_t num) -> PointVec {
     return points;
 }
 
-auto GenerateEntities(const Size &bounds, size_t num) {
-    std::vector<Entity> entities;
-    entities.reserve(num);
-    std::generate_n(std::back_inserter(entities), num, [&] { return Entity::Create(CreateRandPoint(bounds)); });
-    return entities;
+auto CreateEntityRegistry(const Size &bounds, size_t num) -> EntityRegistry {
+    EntityRegistry registry;
+    registry.Reserve(num);
+    size_t size = num++;
+    for (int i = 0; i < size; i++) {
+        registry.Create(CreateRandPoint(bounds));
+    }
+    return registry;
+}
+
+void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
+    for (auto &obstacle : obstacles) {
+        drawer->SetPixel(obstacle, '#');
+    }
 }
 
 void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
     BS::thread_pool pool{static_cast<unsigned int>(args->thread_count)};
     Monitor monitor{args->monitor_size};
-    std::vector<MissionRunner> runners;
-    std::vector<std::pair<std::future<PointVec>, Entity *>> pending;
+    std::vector<std::pair<EntityID, std::future<PointVec>>> pending;
 
-    auto entities = GenerateEntities(monitor.size(), args->num_entities);
-    auto obstacles = GenerateObstacles(monitor.size(), args->num_obstacles);
-    runners.reserve(entities.size());
-    pending.reserve(entities.size());
-
-    for (auto &entity : entities) {
-        runners.push_back(MissionRunner(&entity));
-    }
-
-    for (const auto &obstacle : obstacles) {
-        monitor.SetPixel(obstacle, Obstacle::shape);
-    }
+    auto registry = CreateEntityRegistry(monitor.size(), args->num_entities);
+    auto obstacles = CreateObstacles(monitor.size(), args->num_obstacles);
 
     const std::chrono::milliseconds loop_time{args->loop_time};
     const PathAlgorithm algo{args->algorithm};
@@ -76,51 +68,44 @@ void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
     monitor.SetHeader(std::format("Config: Loop time: {}ms Thread Count: {} Obstacles: {} Algorithm: {}",
                                   loop_time.count(), pool.get_thread_count(), obstacles.size(),
                                   PathAlgorithmToString(algo)));
-
     Profiler profiler{};
     u64 completed_missions{};
+    size_t num_entities = registry.NumEntities();
+
+    DrawObstacles(&monitor, obstacles);
     while (!stoken.stop_requested()) {
         profiler.Start();
-        std::erase_if(runners,
-                      [&pending, &pool, &obstacles, &completed_missions, algo, size = monitor.size()](auto &runner) {
-                          if (!runner.IsComplete()) {
-                              return false;
-                          }
-                          auto entity = runner.entity();
-                          auto fut = pool.submit_task([&obstacles, algo, pos = entity->pos(), size]() {
-                              return FindPath(pos, CreateRandPoint(size), size, obstacles, algo);
-                          });
-                          pending.push_back({std::move(fut), entity});
-                          completed_missions++;
-                          return true;
-                      });
-
-        std::erase_if(pending, [&runners, &monitor](auto &result) {
-            if (result.first.wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
-                return false;
+        auto ids = registry.Update();
+        for (const auto &id : ids) {
+            auto it = std::ranges::find_if(pending, [&registry, &id](auto &p) { return p.first == id; });
+            if (it != pending.end()) {
+                if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    registry.AssignMission(it->first, it->second.get());
+                    pending.erase(it);
+                }
+                continue;
             }
 
-            MissionRunner runner{result.second};
-            runner.AssignMission(result.first.get());
-            runner.DrawMission(monitor);
-            runners.push_back(std::move(runner));
-            return true;
-        });
-
-        for (auto &runner : runners) {
-            runner.Next();
+            auto task = [&obstacles, algo, pos = registry.GetComponent<Point>(id), size = monitor.size()]() {
+                return FindPath(pos, CreateRandPoint(size), size, obstacles, algo);
+            };
+            auto fut = pool.submit_task(std::move(task));
+            pending.push_back(std::make_pair(id, std::move(fut)));
+            completed_missions++;
         }
 
-        for (auto &entity : entities) {
-            entity.Draw(monitor);
-        }
+        registry.Draw(&monitor);
         monitor.Render();
         profiler.Stop();
+        auto elapsed = profiler.GetElapsedMs();
         monitor.SetHeader2(std::format(
             "Info: Executing: {:04}/{:04} Finding paths: {:04}/{:04} Completed: {:04} Iter time: {:02}ms avg: {:02}ms",
-            runners.size(), entities.size(), pending.size(), entities.size(), completed_missions,
-            profiler.GetElapsedMs().count(), profiler.GetAverageMs()));
-        std::this_thread::sleep_for(loop_time);
+            num_entities - ids.size(), num_entities, pending.size(), num_entities, completed_missions, elapsed.count(),
+            profiler.GetAverageMs()));
+
+        if (elapsed < loop_time) {
+            std::this_thread::sleep_for(loop_time - elapsed);
+        }
     }
 
     std::system("cls");

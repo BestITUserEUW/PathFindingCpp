@@ -7,10 +7,19 @@
 #include <thread>
 #include <utility>
 
-#include "windows_helpers.h"
+#include <windows.h>
 
 namespace st::argparse {
 namespace {
+
+auto GetTerminalSize() -> Size {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
+        return Size{0, 0};
+    }
+    return Size{csbi.dwSize.X - 10, csbi.dwSize.Y - 10};
+}
+
 bool HasArgument(char **begin, char **end, string_view option) { return std::find(begin, end, option) != end; }
 auto GetArgumentValue(char **begin, char **end, string_view option) -> std::string {
     char **itr = std::find(begin, end, option);
@@ -25,7 +34,7 @@ int CalculateDefaultObstacles(const Size &monitor_size) { return monitor_size.wi
 }  // namespace
 
 void PrintHelpMessage() {
-    const auto monitor_size = helpers::GetTerminalSize();
+    const auto monitor_size = GetTerminalSize();
     const auto thread_count = std::thread::hardware_concurrency();
     std::stringstream ss;
     ss << "Help \n";
@@ -47,7 +56,7 @@ void PrintHelpMessage() {
 
 auto ParseArguments(int argc, char *argv[]) -> unique_ptr<Args> {
     auto args = std::make_unique<Args>();
-    args->monitor_size = helpers::GetTerminalSize();
+    args->monitor_size = GetTerminalSize();
     args->thread_count = std::thread::hardware_concurrency();
 
     if (HasArgument(argv, argv + argc, "--help")) {
