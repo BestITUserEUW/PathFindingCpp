@@ -7,20 +7,59 @@
 namespace st {
 namespace {
 
-static constexpr size_t kTrailSize = 20;
+void UpdateMission(Mission &mission,
+                   MissionIDX &mission_idx,
+                   std::vector<Entity> &want_new_mission,
+                   const Entity &entity,
+                   const Point &position) {
+    if (mission.empty()) {
+        want_new_mission.push_back(entity);
+        return;
+    }
 
-void DrawMission(Drawer *drawer, const Mission &mission) {
+    if (mission.back() == position) {
+        mission.clear();
+        mission_idx = 0;
+        want_new_mission.push_back(entity);
+    }
+}
+
+void UpdatePositon(Position &position, Mission &mission, MissionIDX &mission_idx, Trail &trail) {
+    if (mission.empty()) {
+        return;
+    }
+
+    trail.push_back(position);
+    position = mission[mission_idx];
+    mission_idx++;
+}
+
+void UpdateTrail(Trail &trail, std::vector<Position> &pending_removals) {
+    constexpr size_t kTrailSize = 20;
+
+    if (trail.size() == kTrailSize) {
+        pending_removals.push_back(trail.front());
+        trail.pop_front();
+    }
+}
+
+void DrawMission(Drawer *drawer, const Mission &mission, const Entity &mission_idx) {
+    // Skip if we already did draw the mission
+    if (mission_idx != 1) {
+        return;
+    }
+
     for (const auto &item : mission) {
         drawer->SetPixel(item, '~');
     }
     drawer->SetPixel(mission.back(), '?');
 }
 
-void DrawEntity(Drawer *drawer, const Point &position, const EntityShape &shape) {
+void DrawPosition(Drawer *drawer, const Position &position, const Shape &shape) {
     drawer->SetPixel(position, shape.look);
 }
 
-void DrawTrail(Drawer *drawer, const Trail &trail, const EntityShape &shape) {
+void DrawTrail(Drawer *drawer, const Trail &trail, const Shape &shape) {
     if (!trail.empty()) {
         drawer->SetPixel(trail.back(), shape.trail);
     }
@@ -28,7 +67,7 @@ void DrawTrail(Drawer *drawer, const Trail &trail, const EntityShape &shape) {
 
 }  // namespace
 
-void EntityRegistry::Reserve(size_t size) {
+void EntitySystem::Reserve(size_t size) {
     shapes_.reserve(size);
     positions_.reserve(size);
     missions_.reserve(size);
@@ -36,70 +75,46 @@ void EntityRegistry::Reserve(size_t size) {
     trails_.reserve(size);
 }
 
-auto EntityRegistry::Create(const Point &start_position, const EntityShape &shape) -> EntityID {
+auto EntitySystem::Create(const Position &start, const Shape &shape) -> Entity {
     shapes_.push_back(shape);
-    positions_.push_back(start_position);
+    positions_.push_back(start);
     missions_.push_back({});
     missions_idx_.push_back({});
     trails_.push_back({});
-    EntityID id = num_entities_;
-    num_entities_++;
-    return num_entities_;
+    return positions_.size() - 1;
 }
 
-void EntityRegistry::AssignMission(EntityID id, Mission &&mission) {
-    assert(id < missions_.size() && "Uknown entitiy id passed");
-    assert(missions_[id].empty() && "Tried assigning mission to already active mission");
-    missions_[id] = std::forward<Mission>(mission);
+void EntitySystem::AssignMission(Entity entity, Mission &&mission) {
+    assert(entity < missions_.size() && "Uknown entitiy passed");
+    assert(missions_[entity].empty() && "Tried assigning mission to already active mission");
+    missions_[entity] = std::forward<Mission>(mission);
 }
 
-auto EntityRegistry::Update() -> std::vector<EntityID> {
+auto EntitySystem::Update() -> std::vector<Entity> {
     pending_removals_.clear();
 
-    std::vector<EntityID> want_new_mission;
-    for (EntityID id = 0; id < positions_.size(); id++) {
-        auto &position = positions_[id];
-        auto &mission = missions_[id];
-        auto &mission_idx = missions_idx_[id];
-        auto &trail = trails_[id];
+    std::vector<Entity> want_new_mission;
+    Entity entity{};
+    auto components = std::views::zip(positions_, shapes_, trails_, missions_, missions_idx_);
+    std::ranges::for_each(components, [&entity, &want_new_mission, &pd = pending_removals_](auto view) {
+        auto &[position, shape, trail, mission, mission_idx] = view;
 
-        // Update position
-        if (!mission.empty()) {
-            trail.push_back(position);
-            position = mission[mission_idx];
-            mission_idx++;
-        }
-
-        // Update missions
-        if (!mission.empty()) {
-            if (mission.back() == position) {
-                mission.clear();
-                mission_idx = 0;
-                want_new_mission.push_back(id);
-            }
-        } else {
-            want_new_mission.push_back(id);
-        }
-
-        // Update trails
-        if (trail.size() == kTrailSize) {
-            pending_removals_.push_back(trail.front());
-            trail.pop_front();
-        }
-    }
+        UpdatePositon(position, mission, mission_idx, trail);
+        UpdateMission(mission, mission_idx, want_new_mission, entity, position);
+        UpdateTrail(trail, pd);
+        entity++;
+    });
     return want_new_mission;
 }
 
-void EntityRegistry::Draw(Drawer *drawer) const {
-    auto zipped = std::views::zip(positions_, shapes_, trails_, missions_, missions_idx_);
-    std::ranges::for_each(zipped, [drawer](auto view) {
-        DrawEntity(drawer, std::get<0>(view), std::get<1>(view));
-        DrawTrail(drawer, std::get<2>(view), std::get<1>(view));
+void EntitySystem::Draw(Drawer *drawer) const {
+    auto components = std::views::zip(positions_, shapes_, trails_, missions_, missions_idx_);
+    std::ranges::for_each(components, [drawer](auto view) {
+        auto &[position, shape, trail, mission, mission_idx] = view;
 
-        // If this is a new mission draw it
-        if (std::get<4>(view) == 1) {
-            DrawMission(drawer, std::get<3>(view));
-        }
+        DrawPosition(drawer, position, shape);
+        DrawTrail(drawer, trail, shape);
+        DrawMission(drawer, mission, mission_idx);
     });
 
     for (auto &removal : pending_removals_) {
@@ -107,6 +122,6 @@ void EntityRegistry::Draw(Drawer *drawer) const {
     }
 }
 
-auto EntityRegistry::NumEntities() -> size_t const { return num_entities_; }
+auto EntitySystem::NumEntities() -> size_t const { return positions_.size(); }
 
 }  // namespace st

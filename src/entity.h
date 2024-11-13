@@ -2,60 +2,64 @@
 
 #include <deque>
 #include <tuple>
+#include <ranges>
 
 #include "point.h"
 #include "drawer.h"
 
 namespace st {
 
-struct EntityShape {
+// Components
+struct Shape {
     char look;
     char trail;
 };
-
+using Position = Point;
 using Mission = std::vector<Point>;
 using Trail = std::deque<Point>;
-using EntityID = size_t;
+using MissionIDX = size_t;
 
-class EntityRegistry {
+// Entity is just an index pointing to the position of the vector
+using Entity = size_t;
+
+class EntitySystem {
 public:
-    EntityRegistry() = default;
+    EntitySystem() = default;
 
     template <typename T>
-    constexpr T &GetComponent(EntityID id);
+    constexpr const T &View(Entity entity);
 
     void Reserve(size_t size);
-    auto Create(const Point &start_position, const EntityShape &shape = EntityShape('O', '-')) -> EntityID;
-    void AssignMission(EntityID id, Mission &&mission);
-    // Update entities and return a vector of entites with ids that
-    auto Update() -> std::vector<EntityID>;
+    auto Create(const Position &start, const Shape &shape = Shape('O', '-')) -> Entity;
+    void AssignMission(Entity entity, Mission &&mission);
+    // Update entities and return a vector of entites that want a new mission
+    auto Update() -> std::vector<Entity>;
     void Draw(Drawer *drawer) const;
     auto NumEntities() -> size_t const;
 
 private:
-    std::vector<EntityShape> shapes_;
+    std::vector<Shape> shapes_;
     std::vector<Point> positions_;
     std::vector<Mission> missions_;
-    std::vector<EntityID> missions_idx_;
+    std::vector<MissionIDX> missions_idx_;
     std::vector<Trail> trails_;
-    std::vector<Point> pending_removals_;
-    size_t num_entities_{};
+    std::vector<Position> pending_removals_;
 };
 
 template <typename T>
-constexpr T &EntityRegistry::GetComponent(EntityID id) {
-    if constexpr (std::is_same<T, EntityShape>()) {
-        return shapes_[id];
-    } else if constexpr (std::is_same<T, Point>()) {
-        return positions_[id];
+constexpr const T &EntitySystem::View(Entity entity) {
+    if constexpr (std::is_same<T, Shape>()) {
+        return shapes_[entity];
+    } else if constexpr (std::is_same<T, Position>()) {
+        return positions_[entity];
     } else if constexpr (std::is_same<T, Mission>()) {
-        return missions_[id];
-    } else if constexpr (std::is_same<T, EntityID>()) {
-        return missions_idx_[id];
+        return missions_[entity];
+    } else if constexpr (std::is_same<T, MissionIDX>()) {
+        return missions_idx_[entity];
     } else if constexpr (std::is_same<T, Trail>()) {
-        return trails_[id];
+        return trails_[entity];
     } else {
-        static_assert(false && "Failed to find component");
+        static_assert(false && "Uknown component");
     }
 }
 

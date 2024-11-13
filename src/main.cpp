@@ -36,14 +36,14 @@ auto CreateObstacles(const Size &bounds, size_t num) -> PointVec {
     return points;
 }
 
-auto CreateEntityRegistry(const Size &bounds, size_t num) -> EntityRegistry {
-    EntityRegistry registry;
-    registry.Reserve(num);
+auto CreateEntitySystem(const Size &bounds, size_t num) -> EntitySystem {
+    EntitySystem system;
+    system.Reserve(num);
     size_t size = num++;
     for (int i = 0; i < size; i++) {
-        registry.Create(CreateRandPoint(bounds));
+        system.Create(CreateRandPoint(bounds));
     }
-    return registry;
+    return system;
 }
 
 void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
@@ -55,9 +55,9 @@ void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
 void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
     BS::thread_pool pool{static_cast<unsigned int>(args->thread_count)};
     Monitor monitor{args->monitor_size};
-    std::vector<std::pair<EntityID, std::future<PointVec>>> pending;
+    std::vector<std::pair<Entity, std::future<PointVec>>> pending_missions;
 
-    auto registry = CreateEntityRegistry(monitor.size(), args->num_entities);
+    auto system = CreateEntitySystem(monitor.size(), args->num_entities);
     auto obstacles = CreateObstacles(monitor.size(), args->num_obstacles);
 
     const std::chrono::milliseconds loop_time{args->loop_time};
@@ -70,38 +70,39 @@ void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
                                   PathAlgorithmToString(algo)));
     Profiler profiler{};
     u64 completed_missions{};
-    size_t num_entities = registry.NumEntities();
+    size_t num_entities = system.NumEntities();
 
     DrawObstacles(&monitor, obstacles);
     while (!stoken.stop_requested()) {
         profiler.Start();
-        auto ids = registry.Update();
+        auto ids = system.Update();
         for (const auto &id : ids) {
-            auto it = std::ranges::find_if(pending, [&registry, &id](auto &p) { return p.first == id; });
-            if (it != pending.end()) {
+            auto it = std::ranges::find_if(pending_missions, [&system, &id](auto &p) { return p.first == id; });
+            if (it != pending_missions.end()) {
                 if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                    registry.AssignMission(it->first, it->second.get());
-                    pending.erase(it);
+                    system.AssignMission(it->first, it->second.get());
+                    pending_missions.erase(it);
                 }
                 continue;
             }
 
-            auto task = [&obstacles, algo, pos = registry.GetComponent<Point>(id), size = monitor.size()]() {
+            auto task = [&obstacles, algo, pos = system.View<Position>(id), size = monitor.size()]() {
                 return FindPath(pos, CreateRandPoint(size), size, obstacles, algo);
             };
             auto fut = pool.submit_task(std::move(task));
-            pending.push_back(std::make_pair(id, std::move(fut)));
+            pending_missions.push_back(std::make_pair(id, std::move(fut)));
             completed_missions++;
         }
 
-        registry.Draw(&monitor);
-        monitor.Render();
+        system.Draw(&monitor);
         profiler.Stop();
         auto elapsed = profiler.GetElapsedMs();
-        monitor.SetHeader2(std::format(
-            "Info: Executing: {:04}/{:04} Finding paths: {:04}/{:04} Completed: {:04} Iter time: {:02}ms avg: {:02}ms",
-            num_entities - ids.size(), num_entities, pending.size(), num_entities, completed_missions, elapsed.count(),
-            profiler.GetAverageMs()));
+        auto info = std::format(
+            "Info: Executing: {:04}/{:04} Pending: {:04}/{:04} Completed: {:04} Iter time: {:02}ms avg: {:02}ms",
+            num_entities - ids.size(), num_entities, pending_missions.size(), num_entities, completed_missions,
+            elapsed.count(), profiler.GetAverageMs());
+        monitor.SetHeader2(info);
+        monitor.Render();
 
         if (elapsed < loop_time) {
             std::this_thread::sleep_for(loop_time - elapsed);

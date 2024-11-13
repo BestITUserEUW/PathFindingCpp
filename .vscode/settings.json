@@ -1,6 +1,6 @@
 {
     "editor.formatOnSave": true,
-    "clang-format.executable": "D:\\Program Files\\clang-format.exe",
+    "clang-format.executable": "D:\\ProgramFiles\\clang-format.exe",
     "files.associations": {
         "ratio": "cpp",
         "xmemory": "cpp",
@@ -80,6 +80,9 @@
         "map": "cpp",
         "set": "cpp",
         "unordered_set": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "iostream": "cpp",
+        "memory_resource": "cpp",
+        "regex": "cpp"
     }
 }

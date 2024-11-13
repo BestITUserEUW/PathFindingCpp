@@ -2,8 +2,8 @@
     {
         "name": "Mingw Compiler",
         "compilers": {
-            "C": "D:\\Program Files\\w64devkit\\bin\\gcc.exe",
-            "CXX": "D:\\Program Files\\w64devkit\\bin\\g++.exe"
+            "C": "D:\\ProgramFiles\\w64devkit\\bin\\gcc.exe",
+            "CXX": "D:\\ProgramFiles\\w64devkit\\bin\\g++.exe"
         }
     }
 ]
