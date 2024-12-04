@@ -52,17 +52,16 @@ void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
     }
 }
 
-void MainLoop(std::stop_token stoken, std::unique_ptr<argparse::Args> args) {
-    BS::thread_pool pool{static_cast<unsigned int>(args->thread_count)};
-    Monitor monitor{args->monitor_size};
+void MainLoop(std::stop_token stoken, argparse::Arguments args) {
+    BS::thread_pool pool{static_cast<unsigned int>(args.thread_count)};
+    Monitor monitor{args.monitor_size};
     std::vector<std::pair<Entity, std::future<PointVec>>> pending_missions;
 
-    auto system = CreateEntitySystem(monitor.size(), args->num_entities);
-    auto obstacles = CreateObstacles(monitor.size(), args->num_obstacles);
+    auto system = CreateEntitySystem(monitor.size(), args.num_entities);
+    auto obstacles = CreateObstacles(monitor.size(), args.num_obstacles);
 
-    const std::chrono::milliseconds loop_time{args->loop_time};
-    const PathAlgorithm algo{args->algorithm};
-    args.reset();
+    const std::chrono::milliseconds loop_time{args.loop_time};
+    const PathAlgorithm algo{args.algorithm};
 
     monitor.SetTitle("Mission Path Finding Simulation 9000");
     monitor.SetHeader(std::format("Config: Loop time: {}ms Thread Count: {} Obstacles: {} Algorithm: {}",
@@ -139,11 +138,6 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, &SignalHandler);
 
     auto args = argparse::ParseArguments(argc, argv);
-    if (!args) {
-        argparse::PrintHelpMessage();
-        std::exit(1);
-    }
-
     g_thread = std::jthread(MainLoop, std::move(args));
     for (;;) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
