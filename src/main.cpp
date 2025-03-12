@@ -115,17 +115,17 @@ void MainLoop(std::stop_token stoken, argparse::Arguments args) {
     std::println("[MainLoop] Exiting");
 }
 
-static std::jthread g_thread;
+static std::jthread worker;
 
 void CleanUp() {
-    if (!g_thread.joinable()) {
+    if (!worker.joinable()) {
         std::exit(1);
     }
 
-    if (!g_thread.request_stop()) {
+    if (!worker.request_stop()) {
         std::abort();
     }
-    g_thread.join();
+    worker.join();
 }
 
 void SignalHandler(int sig) {
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, &SignalHandler);
 
     auto args = argparse::ParseArguments(argc, argv);
-    g_thread = std::jthread(MainLoop, std::move(args));
+    worker = std::jthread(MainLoop, std::move(args));
     for (;;) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

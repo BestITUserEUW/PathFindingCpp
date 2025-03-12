@@ -47,7 +47,3 @@ Once built (or using the prebuilt binary), you can run PathFindingCpp as follows
 ```
 
 This command provides usage instructions and available command-line options.
-
-### Todo
-
-- Fix too large height reported by `GetConsoleScreenBufferInfo`

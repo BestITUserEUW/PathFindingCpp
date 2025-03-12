@@ -83,6 +83,8 @@
         "xtree": "cpp",
         "iostream": "cpp",
         "memory_resource": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "semaphore": "cpp",
+        "variant": "cpp"
     }
 }

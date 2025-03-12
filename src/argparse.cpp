@@ -30,7 +30,11 @@ auto GetTerminalSize() -> Size {
     if (!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
         return Size{0, 0};
     }
-    return Size{csbi.dwSize.X - 10, csbi.dwSize.Y - 10};
+
+    const auto x = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    const auto y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+    return Size{x - 3, y - 6};
 }
 
 int CalculateDefaultObstacles(const Size &monitor_size) { return monitor_size.width * monitor_size.height / 10; }
