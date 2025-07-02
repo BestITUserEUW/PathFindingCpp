@@ -1,11 +1,11 @@
-#include "monitor.h"
+#include "monitor.hpp"
 
 #include <cassert>
 #include <format>
 
 #include <windows.h>
 
-namespace st {
+namespace oryx {
 namespace {
 
 auto CreatePixelMap(Size size, char init) -> Monitor::PixelMap {
@@ -21,9 +21,12 @@ auto CreatePixelMap(Size size, char init) -> Monitor::PixelMap {
 }  // namespace
 
 Monitor::Monitor(Size size)
-    : size_(size), pixel_map_{CreatePixelMap(size, ' ')}, title_{"Monitor"}, header_{}, out_buffer_{} {
-    stdout_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
-}
+    : size_(size),
+      pixel_map_(CreatePixelMap(size, ' ')),
+      title_("Monitor"),
+      header_(),
+      out_buffer_(),
+      stdout_handle_(GetStdHandle(STD_OUTPUT_HANDLE)) {}
 
 void Monitor::Render() {
     SetConsoleCursorPosition(stdout_handle_, COORD{0, 0});
@@ -49,12 +52,12 @@ void Monitor::ClearPixel(const Point &pos) {
     pixel_map_[pos.y][pos.x] = ' ';
 }
 
-char Monitor::GetPixel(const Point &pos) {
+auto Monitor::GetPixel(const Point &pos) -> char {
     assert(IsValid(pos) && "Boundary violation!");
     return pixel_map_[pos.y][pos.x];
 }
 
-bool Monitor::IsValid(const Point &pos) const { return pos.IsWithin(size_); }
+auto Monitor::IsValid(const Point &pos) const -> bool { return pos.IsWithin(size_); }
 
 void Monitor::SetText(const Point &begin, const std::string &text, bool diagonal) {
     Point current = begin;
@@ -67,4 +70,4 @@ void Monitor::SetText(const Point &begin, const std::string &text, bool diagonal
 void Monitor::SetTitle(const std::string &title) { title_ = title; }
 void Monitor::SetHeader(const std::string &text) { header_ = text; }
 void Monitor::SetHeader2(const std::string &text) { header2_ = text; }
-}  // namespace st
+}  // namespace oryx

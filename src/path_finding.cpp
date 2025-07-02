@@ -1,4 +1,4 @@
-#include "path_finding.h"
+#include "path_finding.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -7,13 +7,15 @@
 #include <utility>
 
 namespace std {
+using oryx::Point;
+
 template <>
-struct hash<st::Point> {
-    size_t operator()(const st::Point &point) const { return point.x * 31 + point.y; }
+struct hash<Point> {
+    auto operator()(const oryx::Point &point) const -> size_t { return point.x * 31 + point.y; }
 };
 }  // namespace std
 
-namespace st {
+namespace oryx {
 namespace impl {
 auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec {
     Point current_pos = src;
@@ -27,10 +29,10 @@ auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, con
         }
 
         const std::array<Point, 4> possible_moves{
-            Point{current_pos.x, current_pos.y + 1},
-            Point{current_pos.x, current_pos.y - 1},
-            Point{current_pos.x - 1, current_pos.y},
-            Point{current_pos.x + 1, current_pos.y},
+            Point(current_pos.x, current_pos.y + 1),
+            Point(current_pos.x, current_pos.y - 1),
+            Point(current_pos.x - 1, current_pos.y),
+            Point(current_pos.x + 1, current_pos.y),
         };
 
         auto moves = possible_moves |
@@ -59,7 +61,7 @@ auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, con
 }
 
 auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec {
-    constexpr std::array<Point, 4> directions{Point{0, 1}, Point{1, 0}, Point{0, -1}, Point{-1, 0}};
+    constexpr std::array<Point, 4> directions{Point(0, 1), Point(1, 0), Point(0, -1), Point(-1, 0)};
     using ScorePoint = std::pair<int, Point>;
 
     // Priority queue for nodes to explore, ordered by f-score.
@@ -70,7 +72,7 @@ auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, cons
     std::unordered_map<Point, Point> came_from;  // To reconstruct the path.
 
     score[src] = 0;
-    open_set.push(std::make_pair(src.DistanceTo(dest), src));
+    open_set.emplace(src.DistanceTo(dest), src);
 
     while (!open_set.empty()) {
         Point current = open_set.top().second;
@@ -82,13 +84,13 @@ auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, cons
                 path.push_back(p);
             }
             path.push_back(src);
-            std::reverse(path.begin(), path.end());
+            std::ranges::reverse(path);
             return path;
         }
 
         // Explore neighbors.
         for (const auto &dir : directions) {
-            Point neighbor{current.x + dir.x, current.y + dir.y};
+            Point neighbor(current.x + dir.x, current.y + dir.y);
 
             auto it = std::ranges::find_if(obstacles, [&neighbor](const auto &obs) { return obs == neighbor; });
             if (!neighbor.IsWithin(bounds) || it != obstacles.end()) {
@@ -123,14 +125,4 @@ auto FindPath(const Point &src, const Point &dest, const Size &bounds, const Poi
     }
 }
 
-auto PathAlgorithmToString(PathAlgorithm algo) -> string_view {
-    switch (algo) {
-        case PathAlgorithm::AStar:
-            return "AStar";
-        case PathAlgorithm::Greedy:
-            return "Greedy";
-        default:
-            std::unreachable();
-    }
-}
-}  // namespace st
+}  // namespace oryx

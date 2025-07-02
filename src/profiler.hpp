@@ -2,9 +2,10 @@
 
 #include <chrono>
 
-#include "types.h"
+#include <oryx/types.hpp>
+#include <oryx/chrono/stopwatch.hpp>
 
-namespace st {
+namespace oryx {
 class Profiler {
 public:
     using Clock = std::chrono::steady_clock;
@@ -35,9 +36,9 @@ public:
     auto GetElapsed() -> std::chrono::nanoseconds const { return elapsed_; }
 
 private:
-    TimePoint start_;
-    std::chrono::nanoseconds elapsed_;
-    u64 elapsed_sum_;
-    u64 iterations_;
+    TimePoint start_{};
+    std::chrono::nanoseconds elapsed_{};
+    u64 elapsed_sum_{};
+    u64 iterations_{};
 };
-}  // namespace st
+}  // namespace oryx

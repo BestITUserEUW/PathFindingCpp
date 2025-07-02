@@ -1,19 +1,18 @@
 #pragma once
 
 #include <deque>
-#include <tuple>
-#include <ranges>
 
-#include "point.h"
-#include "drawer.h"
+#include "point.hpp"
+#include "drawer.hpp"
 
-namespace st {
+namespace oryx {
 
 // Components
 struct Shape {
     char look;
     char trail;
 };
+
 using Position = Point;
 using Mission = std::vector<Point>;
 using Trail = std::deque<Point>;
@@ -27,7 +26,7 @@ public:
     EntitySystem() = default;
 
     template <typename T>
-    constexpr const T &View(Entity entity);
+    constexpr auto View(Entity entity) -> const T &;
 
     void Reserve(size_t size);
     auto Create(const Position &start, const Shape &shape = Shape('O', '-')) -> Entity;
@@ -38,16 +37,16 @@ public:
     auto NumEntities() -> size_t const;
 
 private:
-    std::vector<Shape> shapes_;
-    std::vector<Point> positions_;
-    std::vector<Mission> missions_;
-    std::vector<MissionIDX> missions_idx_;
-    std::vector<Trail> trails_;
-    std::vector<Position> pending_removals_;
+    std::vector<Shape> shapes_{};
+    std::vector<Point> positions_{};
+    std::vector<Mission> missions_{};
+    std::vector<MissionIDX> missions_idx_{};
+    std::vector<Trail> trails_{};
+    std::vector<Position> pending_removals_{};
 };
 
 template <typename T>
-constexpr const T &EntitySystem::View(Entity entity) {
+constexpr auto EntitySystem::View(Entity entity) -> const T & {
     if constexpr (std::is_same<T, Shape>()) {
         return shapes_[entity];
     } else if constexpr (std::is_same<T, Position>()) {
@@ -63,4 +62,4 @@ constexpr const T &EntitySystem::View(Entity entity) {
     }
 }
 
-}  // namespace st
+}  // namespace oryx

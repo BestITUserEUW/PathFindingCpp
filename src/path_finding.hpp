@@ -1,13 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <string_view>
+#include <cstdint>
 
-#include "types.h"
-#include "point.h"
+#include <oryx/types.hpp>
 
-namespace st {
-enum class PathAlgorithm { Greedy, AStar };
+#include "point.hpp"
+
+namespace oryx {
+enum class PathAlgorithm : uint8_t { Greedy, AStar };
 
 namespace impl {
 
@@ -20,6 +20,4 @@ auto FindPath(const Point &src,
               const Size &bounds,
               const PointVec &obstacles,
               PathAlgorithm algo = PathAlgorithm::AStar) -> PointVec;
-
-auto PathAlgorithmToString(PathAlgorithm algo) -> string_view;
-}  // namespace st
+}  // namespace oryx

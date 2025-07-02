@@ -1,28 +1,32 @@
+#include <atomic>
 #include <random>
 #include <thread>
 #include <format>
 #include <print>
 #include <future>
-#include <signal.h>
-#include <ranges>
+#include <csignal>
 #include <algorithm>
 
-#include "monitor.h"
-#include "entity.h"
-#include "path_finding.h"
-#include "thread_pool.h"
-#include "argparse.h"
-#include "profiler.h"
-#include "types.h"
+#include <oryx/thread_pool.hpp>
+#include <oryx/enchantum.hpp>
+#include <oryx/types.hpp>
 
-using namespace st;
+#include "monitor.hpp"
+#include "entity.hpp"
+#include "path_finding.hpp"
+#include "profiler.hpp"
+#include "cmdline.hpp"
+
+using namespace oryx;
+
+static std::atomic_bool stop_requested{};
 
 auto CreateRandPoint(Size size) -> Point {
     std::random_device rd;
     std::mt19937 rng(rd());
     std::uniform_int_distribution<int> xgen(0, size.width - 1);
     std::uniform_int_distribution<int> ygen(0, size.height - 1);
-    return Point{xgen(rng), ygen(rng)};
+    return Point(xgen(rng), ygen(rng));
 }
 
 auto CreateObstacles(const Size &bounds, size_t num) -> PointVec {
@@ -32,7 +36,7 @@ auto CreateObstacles(const Size &bounds, size_t num) -> PointVec {
     std::uniform_int_distribution<int> ygen(0, bounds.height - 1);
     PointVec points;
     points.reserve(num);
-    std::generate_n(std::back_inserter(points), num, [&] { return Point{xgen(rng), ygen(rng)}; });
+    std::generate_n(std::back_inserter(points), num, [&] { return Point(xgen(rng), ygen(rng)); });
     return points;
 }
 
@@ -52,7 +56,7 @@ void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
     }
 }
 
-void MainLoop(std::stop_token stoken, argparse::Arguments args) {
+void MainLoop(const Arguments &args) {
     BS::thread_pool pool{static_cast<unsigned int>(args.thread_count)};
     Monitor monitor{args.monitor_size};
     std::vector<std::pair<Entity, std::future<PointVec>>> pending_missions;
@@ -60,19 +64,18 @@ void MainLoop(std::stop_token stoken, argparse::Arguments args) {
     auto system = CreateEntitySystem(monitor.size(), args.num_entities);
     auto obstacles = CreateObstacles(monitor.size(), args.num_obstacles);
 
-    const std::chrono::milliseconds loop_time{args.loop_time};
-    const PathAlgorithm algo{args.algorithm};
-
     monitor.SetTitle("Mission Path Finding Simulation 9000");
-    monitor.SetHeader(std::format("Config: Loop time: {}ms Thread Count: {} Obstacles: {} Algorithm: {}",
-                                  loop_time.count(), pool.get_thread_count(), obstacles.size(),
-                                  PathAlgorithmToString(algo)));
+    monitor.SetHeader(std::format("Config: Loop time: {} Thread Count: {} Obstacles: {} Algorithm: {}", args.loop_time,
+                                  pool.get_thread_count(), obstacles.size(), enchantum::to_string(args.algorithm)));
     Profiler profiler{};
     u64 completed_missions{};
     size_t num_entities = system.NumEntities();
 
     DrawObstacles(&monitor, obstacles);
-    while (!stoken.stop_requested()) {
+
+    std::string info;
+    info.reserve(64);
+    while (!stop_requested) {
         profiler.Start();
         auto ids = system.Update();
         for (const auto &id : ids) {
@@ -85,65 +88,39 @@ void MainLoop(std::stop_token stoken, argparse::Arguments args) {
                 continue;
             }
 
-            auto task = [&obstacles, algo, pos = system.View<Position>(id), size = monitor.size()]() {
+            auto task = [&obstacles, algo = args.algorithm, pos = system.View<Position>(id), size = monitor.size()]() {
                 return FindPath(pos, CreateRandPoint(size), size, obstacles, algo);
             };
             auto fut = pool.submit_task(std::move(task));
-            pending_missions.push_back(std::make_pair(id, std::move(fut)));
+            pending_missions.emplace_back(id, std::move(fut));
             completed_missions++;
         }
 
         system.Draw(&monitor);
         profiler.Stop();
         auto elapsed = profiler.GetElapsedMs();
-        auto info = std::format(
-            "Info: Executing: {:04}/{:04} Pending: {:04}/{:04} Completed: {:04} Iter time: {:02}ms avg: {:02}ms",
+        info = std::format(
+            "Info: Executing: {:04}/{:04} Pending: {:04}/{:04} Completed: {:04} Iter time: {:04}ms avg: {:04}ms",
             num_entities - ids.size(), num_entities, pending_missions.size(), num_entities, completed_missions,
             elapsed.count(), profiler.GetAverageMs());
         monitor.SetHeader2(info);
         monitor.Render();
 
-        if (elapsed < loop_time) {
-            std::this_thread::sleep_for(loop_time - elapsed);
+        if (elapsed < args.loop_time) {
+            std::this_thread::sleep_for(args.loop_time - elapsed);
         }
     }
 
     std::system("cls");
-    std::println("[MainLoop] Stopping crypto miners...");
+    std::println("[MainLoop] Cleaning up threads");
     pool.purge();
     pool.wait();
-    std::println("[MainLoop] Exiting");
 }
 
-static std::jthread worker;
-
-void CleanUp() {
-    if (!worker.joinable()) {
-        std::exit(1);
-    }
-
-    if (!worker.request_stop()) {
-        std::abort();
-    }
-    worker.join();
-}
-
-void SignalHandler(int sig) {
-    CleanUp();
-    std::println("[SignalHandler] Exiting");
-    std::exit(0);
-}
-
-int main(int argc, char *argv[]) {
-    signal(SIGINT, &SignalHandler);
-
-    auto args = argparse::ParseArguments(argc, argv);
-    worker = std::jthread(MainLoop, std::move(args));
-    for (;;) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    CleanUp();
+auto main(int argc, char *argv[]) -> int {
+    signal(SIGINT, [](int) { stop_requested.store(true); });
+    const auto args = ParseArguments(argc, argv);
+    MainLoop(args);
     std::println("Exiting");
     return 0;
 }

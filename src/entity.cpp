@@ -1,10 +1,10 @@
-#include "entity.h"
+#include "entity.hpp"
 
 #include <cassert>
 #include <ranges>
 #include <algorithm>
 
-namespace st {
+namespace oryx {
 namespace {
 
 void UpdateMission(Mission &mission,
@@ -78,9 +78,9 @@ void EntitySystem::Reserve(size_t size) {
 auto EntitySystem::Create(const Position &start, const Shape &shape) -> Entity {
     shapes_.push_back(shape);
     positions_.push_back(start);
-    missions_.push_back({});
-    missions_idx_.push_back({});
-    trails_.push_back({});
+    missions_.emplace_back();
+    missions_idx_.emplace_back();
+    trails_.emplace_back();
     return positions_.size() - 1;
 }
 
@@ -109,7 +109,7 @@ auto EntitySystem::Update() -> std::vector<Entity> {
 
 void EntitySystem::Draw(Drawer *drawer) const {
     auto components = std::views::zip(positions_, shapes_, trails_, missions_, missions_idx_);
-    std::ranges::for_each(components, [drawer](auto view) {
+    std::ranges::for_each(components, [drawer](const auto &view) {
         auto &[position, shape, trail, mission, mission_idx] = view;
 
         DrawPosition(drawer, position, shape);
@@ -124,4 +124,4 @@ void EntitySystem::Draw(Drawer *drawer) const {
 
 auto EntitySystem::NumEntities() -> size_t const { return positions_.size(); }
 
-}  // namespace st
+}  // namespace oryx

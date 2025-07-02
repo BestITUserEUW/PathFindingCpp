@@ -1,9 +1,19 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
 
 project(PathFinding)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+include(FetchContent)
+FetchContent_Declare(
+    oryx-crt-cpp
+    GIT_REPOSITORY https://github.com/BestITUserEUW/oryx-crt-cpp.git
+    GIT_TAG main
+    OVERRIDE_FIND_PACKAGE
+    EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(oryx-crt-cpp)
 
 find_package(Threads REQUIRED)
 
@@ -12,11 +22,12 @@ add_executable(${PROJECT_NAME}
 	src/monitor.cpp
 	src/path_finding.cpp
 	src/entity.cpp
-	src/argparse.cpp
+	src/cmdline.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	Threads::Threads
+	oryx-crt-cpp
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

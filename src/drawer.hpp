@@ -1,8 +1,8 @@
 #pragma once
 
-#include "point.h"
+#include "point.hpp"
 
-namespace st {
+namespace oryx {
 
 class Drawer {
 public:
@@ -11,4 +11,4 @@ public:
     virtual void ClearPixel(const Point &pos) = 0;
 };
 
-}  // namespace st
+}  // namespace oryx
