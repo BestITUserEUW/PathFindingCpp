@@ -29,7 +29,7 @@ public:
     constexpr auto View(Entity entity) -> const T &;
 
     void Reserve(size_t size);
-    auto Create(const Position &start, const Shape &shape = Shape('O', '-')) -> Entity;
+    auto Create(Position start, Shape shape = Shape('O', '-')) -> Entity;
     void AssignMission(Entity entity, Mission &&mission);
     // Update entities and return a vector of entites that want a new mission
     auto Update() -> std::vector<Entity>;

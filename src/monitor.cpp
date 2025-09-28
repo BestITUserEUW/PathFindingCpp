@@ -3,7 +3,7 @@
 #include <cassert>
 #include <format>
 
-#include <windows.h>
+#include "windows.hpp"
 
 namespace oryx {
 namespace {
@@ -42,24 +42,24 @@ void Monitor::Render() {
     WriteConsole(stdout_handle_, out_buffer_.data(), static_cast<DWORD>(out_buffer_.size()), &n, {});
 }
 
-void Monitor::SetPixel(const Point &pos, char ch) {
+void Monitor::SetPixel(Point pos, char ch) {
     assert(IsValid(pos) && "Boundary violation!");
     pixel_map_[pos.y][pos.x] = ch;
 }
 
-void Monitor::ClearPixel(const Point &pos) {
+void Monitor::ClearPixel(Point pos) {
     assert(IsValid(pos) && "Boundary violation!");
     pixel_map_[pos.y][pos.x] = ' ';
 }
 
-auto Monitor::GetPixel(const Point &pos) -> char {
+auto Monitor::GetPixel(Point pos) -> char {
     assert(IsValid(pos) && "Boundary violation!");
     return pixel_map_[pos.y][pos.x];
 }
 
-auto Monitor::IsValid(const Point &pos) const -> bool { return pos.IsWithin(size_); }
+auto Monitor::IsValid(Point pos) const -> bool { return pos.IsWithin(size_); }
 
-void Monitor::SetText(const Point &begin, const std::string &text, bool diagonal) {
+void Monitor::SetText(Point begin, std::string_view text, bool diagonal) {
     Point current = begin;
     for (char letter : text) {
         SetPixel(current, letter);
@@ -67,7 +67,7 @@ void Monitor::SetText(const Point &begin, const std::string &text, bool diagonal
     }
 }
 
-void Monitor::SetTitle(const std::string &title) { title_ = title; }
-void Monitor::SetHeader(const std::string &text) { header_ = text; }
-void Monitor::SetHeader2(const std::string &text) { header2_ = text; }
+void Monitor::SetTitle(std::string title) { title_ = std::move(title); }
+void Monitor::SetHeader(std::string text) { header_ = std::move(text); }
+void Monitor::SetHeader2(std::string text) { header2_ = std::move(text); }
 }  // namespace oryx

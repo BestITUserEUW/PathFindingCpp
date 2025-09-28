@@ -7,11 +7,8 @@
 namespace oryx {
 namespace {
 
-void UpdateMission(Mission &mission,
-                   MissionIDX &mission_idx,
-                   std::vector<Entity> &want_new_mission,
-                   const Entity &entity,
-                   const Point &position) {
+void UpdateMission(
+    Mission &mission, MissionIDX &mission_idx, std::vector<Entity> &want_new_mission, Entity entity, Point position) {
     if (mission.empty()) {
         want_new_mission.push_back(entity);
         return;
@@ -75,9 +72,9 @@ void EntitySystem::Reserve(size_t size) {
     trails_.reserve(size);
 }
 
-auto EntitySystem::Create(const Position &start, const Shape &shape) -> Entity {
-    shapes_.push_back(shape);
-    positions_.push_back(start);
+auto EntitySystem::Create(Position start, Shape shape) -> Entity {
+    shapes_.emplace_back(shape);
+    positions_.emplace_back(start);
     missions_.emplace_back();
     missions_idx_.emplace_back();
     trails_.emplace_back();

@@ -48,9 +48,9 @@ target_link_options(${PROJECT_NAME} PRIVATE
 )
 
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-
+set_property(TARGET ${PROJECT_NAME} PROPERTY
+  MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 target_compile_options(${PROJECT_NAME} PRIVATE
-	/MT 
 	/O2
 )
 

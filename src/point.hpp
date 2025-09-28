@@ -3,18 +3,21 @@
 #include <cmath>
 #include <vector>
 
+#include <oryx/types.hpp>
+
 namespace oryx {
+
 struct Size {
-    int width;
-    int height;
+    u16 width;
+    u16 height;
 };
 
 struct Point {
-    int x;
-    int y;
+    u16 x;
+    u16 y;
 
-    auto DistanceTo(const Point &dest) const -> int { return std::abs(dest.x - x) + std::abs(dest.y - y); }
-    auto IsWithin(const Size &size) const -> bool { return (x >= 0 && x < size.width) && (y >= 0 && y < size.height); }
+    auto DistanceTo(Point dest) const -> int { return std::abs(dest.x - x) + std::abs(dest.y - y); }
+    auto IsWithin(Size size) const -> bool { return (x >= 0 && x < size.width) && (y >= 0 && y < size.height); }
     auto operator==(const Point &other) const -> bool = default;
     auto operator!=(const Point &other) const -> bool = default;
 };

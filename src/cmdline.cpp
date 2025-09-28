@@ -1,15 +1,17 @@
 #include "cmdline.hpp"
 
+#include <limits>
 #include <print>
 #include <thread>
 #include <utility>
 
-#include <windows.h>
-
 #include <oryx/argparse.hpp>
 #include <oryx/enchantum.hpp>
 
+#include "windows.hpp"
 #include "path_finding.hpp"
+
+using std::println;
 
 namespace oryx {
 namespace {
@@ -45,30 +47,28 @@ auto CalculateDefaultObstacles(const Size &monitor_size) { return monitor_size.w
 
 template <typename T>
 void PrintlnOption(std::string_view option, std::string_view description, T _default) {
-    std::println("{:<15}{:<40}{}", option, description, _default);
+    println("{:<15}{:<40}{}", option, description, _default);
 }
 
-void PrintlnOption(std::string_view option, std::string_view description) {
-    std::println("{:<15}{}", option, description);
-}
+void PrintlnOption(std::string_view option, std::string_view description) { println("{:<15}{}", option, description); }
 
 template <typename T>
 void PrintlnOption(std::string_view option,
                    std::string_view description,
                    std::vector<std::pair<std::string_view, T>> selection) {
-    std::println("{:<15}{:<40}", option, description);
+    println("{:<15}{:<40}", option, description);
     for (auto &[desc, value] : selection) {
-        std::println("{:>15}{} = {}", "", desc, value);
+        println("{:>15}{} = {}", "", desc, value);
     }
-    std::println("");
+    println("");
 }
 
 void PrintHelpMessageAndExit() {
     const auto monitor_size = GetTerminalSize();
-    std::println("Help");
-    std::println("");
-    std::println("{:<15}{:<40}{}", "Option", "Description", "Default");
-    std::println("");
+    println("Help");
+    println("");
+    println("{:<15}{:<40}{}", "Option", "Description", "Default");
+    println("");
     PrintlnOption(kHelp, "Print this help message");
     PrintlnOption(kWidth, "Monitor width", monitor_size.width);
     PrintlnOption(kHeight, "Monitor height", monitor_size.height);
@@ -97,8 +97,20 @@ auto ParseArguments(int argc, char *argv[]) -> Arguments {
         PrintHelpMessageAndExit();
     }
 
-    cli.VisitIfContains<int>(kWidth, [&args](int val) { args.monitor_size.width = val; });
-    cli.VisitIfContains<int>(kHeight, [&args](int val) { args.monitor_size.height = val; });
+    cli.VisitIfContains<int>(kWidth, [&args](int val) {
+        if (val > std::numeric_limits<u16>::max()) {
+            println("Width cannot exceed: {}", std::numeric_limits<u16>::max());
+            return;
+        }
+        args.monitor_size.width = static_cast<u16>(val);
+    });
+    cli.VisitIfContains<int>(kHeight, [&args](int val) {
+        if (val > std::numeric_limits<u16>::max()) {
+            println("Height cannot exceed: {}", std::numeric_limits<u16>::max());
+            return;
+        }
+        args.monitor_size.height = static_cast<u16>(val);
+    });
     // Set the default here as we now have our monitor size set
     args.num_obstacles = CalculateDefaultObstacles(args.monitor_size);
 
@@ -109,7 +121,7 @@ auto ParseArguments(int argc, char *argv[]) -> Arguments {
     cli.VisitIfContains<int>(kAlgorithm, [&args](int val) {
         auto algorithm = enchantum::cast<PathAlgorithm>(val);
         if (!algorithm) {
-            std::println("[Argparse] Unknown algorithm: {} !", val);
+            println("[Argparse] Unknown algorithm: {} !", val);
             PrintHelpMessageAndExit();
         }
 

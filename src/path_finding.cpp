@@ -17,7 +17,7 @@ struct hash<Point> {
 
 namespace oryx {
 namespace impl {
-auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec {
+auto FindPathGreedy(Point src, Point dest, Size bounds, std::span<Point> obstacles) -> PointVec {
     Point current_pos = src;
     PointVec path;
     int distance_threshold = src.DistanceTo(dest) + 50;
@@ -35,13 +35,10 @@ auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, con
             Point(current_pos.x + 1, current_pos.y),
         };
 
-        auto moves = possible_moves |
-                     std::views::filter([&bounds](const auto &move) { return move.IsWithin(bounds); }) |
-                     std::views::filter([&obstacles](const auto &move) {
-                         auto it = std::ranges::find_if(obstacles, [&move](const auto &obs) { return obs == move; });
-                         return it == obstacles.end();
-                     }) |
-                     std::views::filter([&path](const auto &move) {
+        auto moves = possible_moves | std::views::filter([&bounds](Point move) { return move.IsWithin(bounds); }) |
+                     std::views::filter(
+                         [&obstacles](Point move) { return std::ranges::find(obstacles, move) == obstacles.end(); }) |
+                     std::views::filter([&path](Point move) {
                          if (path.size() < 2)
                              return true;
                          else
@@ -53,19 +50,19 @@ auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, con
         }
 
         auto best_move = std::ranges::min_element(
-            moves, [&dest](const Point &lhs, const Point &rhs) { return lhs.DistanceTo(dest) < rhs.DistanceTo(dest); });
+            moves, [&dest](Point lhs, Point rhs) { return lhs.DistanceTo(dest) < rhs.DistanceTo(dest); });
         path.push_back(*best_move);
         current_pos = path.back();
     }
     return path;
 }
 
-auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec {
+auto FindPathAStar(Point src, Point dest, Size bounds, std::span<Point> obstacles) -> PointVec {
     constexpr std::array<Point, 4> directions{Point(0, 1), Point(1, 0), Point(0, -1), Point(-1, 0)};
     using ScorePoint = std::pair<int, Point>;
 
     // Priority queue for nodes to explore, ordered by f-score.
-    auto cmp = [](const ScorePoint &lhs, ScorePoint &rhs) { return lhs.first > rhs.first; };
+    auto cmp = [](ScorePoint lhs, ScorePoint rhs) { return lhs.first > rhs.first; };
     std::priority_queue<ScorePoint, std::vector<ScorePoint>, decltype(cmp)> open_set(std::move(cmp));
 
     std::unordered_map<Point, int> score;        // Cost from start to each point.
@@ -105,7 +102,7 @@ auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, cons
                 int f_score = tentative_score + neighbor.DistanceTo(dest);
                 score[neighbor] = tentative_score;
                 came_from[neighbor] = current;
-                open_set.push(std::make_pair(f_score, neighbor));
+                open_set.emplace(f_score, neighbor);
             }
         }
     }
@@ -113,8 +110,7 @@ auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, cons
 }
 }  // namespace impl
 
-auto FindPath(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles, PathAlgorithm algo)
-    -> PointVec {
+auto FindPath(Point src, Point dest, Size bounds, std::span<Point> obstacles, PathAlgorithm algo) -> PointVec {
     switch (algo) {
         case PathAlgorithm::AStar:
             return impl::FindPathAStar(src, dest, bounds, obstacles);

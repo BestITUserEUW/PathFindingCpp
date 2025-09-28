@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 
 #include <oryx/types.hpp>
 
@@ -11,13 +12,10 @@ enum class PathAlgorithm : uint8_t { Greedy, AStar };
 
 namespace impl {
 
-auto FindPathAStar(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec;
-auto FindPathGreedy(const Point &src, const Point &dest, const Size &bounds, const PointVec &obstacles) -> PointVec;
+auto FindPathAStar(Point src, Point dest, Size bounds, std::span<Point> obstacles) -> PointVec;
+auto FindPathGreedy(Point src, Point dest, Size bounds, std::span<Point> obstacles) -> PointVec;
 }  // namespace impl
 
-auto FindPath(const Point &src,
-              const Point &dest,
-              const Size &bounds,
-              const PointVec &obstacles,
-              PathAlgorithm algo = PathAlgorithm::AStar) -> PointVec;
+auto FindPath(Point src, Point dest, Size bounds, std::span<Point> obstacles, PathAlgorithm algo = PathAlgorithm::AStar)
+    -> PointVec;
 }  // namespace oryx

@@ -15,14 +15,14 @@ public:
     explicit Monitor(Size size);
 
     void Render();
-    void SetPixel(const Point &pos, char ch) override;
-    void ClearPixel(const Point &pos) override;
-    auto GetPixel(const Point &pos) -> char;
-    void SetText(const Point &begin, const std::string &text, bool diagonal = false);
-    void SetTitle(const std::string &title);
-    void SetHeader(const std::string &text);
-    void SetHeader2(const std::string &text);
-    auto IsValid(const Point &pos) const -> bool;
+    void SetPixel(Point pos, char ch) override;
+    void ClearPixel(Point pos) override;
+    auto GetPixel(Point pos) -> char;
+    void SetText(Point begin, std::string_view text, bool diagonal = false);
+    void SetTitle(std::string title);
+    void SetHeader(std::string text);
+    void SetHeader2(std::string text);
+    auto IsValid(Point pos) const -> bool;
     auto size() const { return size_; }
 
 private:

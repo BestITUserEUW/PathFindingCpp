@@ -27,13 +27,13 @@ public:
         iterations_ = 0;
     }
 
-    auto GetElapsedMs() -> std::chrono::milliseconds const {
+    auto GetElapsedMs() const -> std::chrono::milliseconds {
         return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_);
     }
 
-    auto GetAverageMs() -> u64 const { return elapsed_sum_ / iterations_; }
-    auto GetIterations() -> u64 const { return iterations_; }
-    auto GetElapsed() -> std::chrono::nanoseconds const { return elapsed_; }
+    auto GetAverageMs() const -> u64 { return elapsed_sum_ / iterations_; }
+    auto GetIterations() const -> u64 { return iterations_; }
+    auto GetElapsed() const -> std::chrono::nanoseconds { return elapsed_; }
 
 private:
     TimePoint start_{};

@@ -10,6 +10,7 @@
 #include <oryx/thread_pool.hpp>
 #include <oryx/enchantum.hpp>
 #include <oryx/types.hpp>
+#include <oryx/chrono/cycle_timer.hpp>
 
 #include "monitor.hpp"
 #include "entity.hpp"
@@ -44,22 +45,22 @@ auto CreateEntitySystem(const Size &bounds, size_t num) -> EntitySystem {
     EntitySystem system;
     system.Reserve(num);
     size_t size = num++;
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         system.Create(CreateRandPoint(bounds));
     }
     return system;
 }
 
-void DrawObstacles(Drawer *drawer, const std::vector<Point> &obstacles) {
-    for (auto &obstacle : obstacles) {
-        drawer->SetPixel(obstacle, '#');
-    }
+void DrawObstacles(Drawer *drawer, std::span<Point> obstacles) {
+    for (auto obstacle : obstacles) drawer->SetPixel(obstacle, '#');
 }
 
 void MainLoop(const Arguments &args) {
+    using PendingMission = std::pair<Entity, std::future<PointVec>>;
+
     BS::thread_pool pool{static_cast<unsigned int>(args.thread_count)};
     Monitor monitor{args.monitor_size};
-    std::vector<std::pair<Entity, std::future<PointVec>>> pending_missions;
+    std::vector<PendingMission> pending_missions;
 
     auto system = CreateEntitySystem(monitor.size(), args.num_entities);
     auto obstacles = CreateObstacles(monitor.size(), args.num_obstacles);
@@ -75,11 +76,17 @@ void MainLoop(const Arguments &args) {
 
     std::string info;
     info.reserve(64);
+    pending_missions.reserve(num_entities);
+
+    oryx::chrono::CycleTimer cycle_timer{args.loop_time};
+
     while (!stop_requested) {
-        profiler.Start();
+        auto timer_reset = oryx::chrono::MakeScopedCycleTimerReset(cycle_timer);
         auto ids = system.Update();
+        profiler.Start();
+
         for (const auto &id : ids) {
-            auto it = std::ranges::find_if(pending_missions, [&system, &id](auto &p) { return p.first == id; });
+            auto it = std::ranges::find(pending_missions, id, &PendingMission::first);
             if (it != pending_missions.end()) {
                 if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                     system.AssignMission(it->first, it->second.get());
@@ -98,16 +105,15 @@ void MainLoop(const Arguments &args) {
 
         system.Draw(&monitor);
         profiler.Stop();
-        auto elapsed = profiler.GetElapsedMs();
         info = std::format(
             "Info: Executing: {:04}/{:04} Pending: {:04}/{:04} Completed: {:04} Iter time: {:04}ms avg: {:04}ms",
             num_entities - ids.size(), num_entities, pending_missions.size(), num_entities, completed_missions,
-            elapsed.count(), profiler.GetAverageMs());
+            profiler.GetElapsedMs().count(), profiler.GetAverageMs());
         monitor.SetHeader2(info);
         monitor.Render();
 
-        if (elapsed < args.loop_time) {
-            std::this_thread::sleep_for(args.loop_time - elapsed);
+        if (auto sleep_dur = cycle_timer.GetNextSleep(); sleep_dur) {
+            std::this_thread::sleep_for(sleep_dur.value());
         }
     }
 
