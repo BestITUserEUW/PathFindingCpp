@@ -2,8 +2,8 @@
 
 #include <chrono>
 
-#include <oryx/types.hpp>
-#include <oryx/chrono/stopwatch.hpp>
+#include <cstdint>
+#include <oryx/crt/stopwatch.hpp>
 
 namespace oryx {
 class Profiler {
@@ -31,14 +31,14 @@ public:
         return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_);
     }
 
-    auto GetAverageMs() const -> u64 { return elapsed_sum_ / iterations_; }
-    auto GetIterations() const -> u64 { return iterations_; }
+    auto GetAverageMs() const -> uint64_t { return elapsed_sum_ / iterations_; }
+    auto GetIterations() const -> uint64_t { return iterations_; }
     auto GetElapsed() const -> std::chrono::nanoseconds { return elapsed_; }
 
 private:
     TimePoint start_{};
     std::chrono::nanoseconds elapsed_{};
-    u64 elapsed_sum_{};
-    u64 iterations_{};
+    uint64_t elapsed_sum_{};
+    uint64_t iterations_{};
 };
 }  // namespace oryx

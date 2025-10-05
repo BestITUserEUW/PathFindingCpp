@@ -1,12 +1,15 @@
 #include "cmdline.hpp"
 
+#include <cstdint>
 #include <limits>
 #include <print>
 #include <thread>
 #include <utility>
+#include <span>
+#include <array>
 
-#include <oryx/argparse.hpp>
-#include <oryx/enchantum.hpp>
+#include <oryx/crt/argparse.hpp>
+#include <oryx/crt/enchantum.hpp>
 
 #include "windows.hpp"
 #include "path_finding.hpp"
@@ -55,7 +58,7 @@ void PrintlnOption(std::string_view option, std::string_view description) { prin
 template <typename T>
 void PrintlnOption(std::string_view option,
                    std::string_view description,
-                   std::vector<std::pair<std::string_view, T>> selection) {
+                   std::span<std::pair<std::string_view, T>> selection) {
     println("{:<15}{:<40}", option, description);
     for (auto &[desc, value] : selection) {
         println("{:>15}{} = {}", "", desc, value);
@@ -78,14 +81,14 @@ void PrintHelpMessageAndExit() {
     PrintlnOption(kLoopTime, "Main loop sleep time", kDefaultLoopTime);
     PrintlnOption(
         kAlgorithm, "Algorithm to use for path finding",
-        std::vector{
+        std::array{
             std::make_pair(enchantum::to_string(PathAlgorithm::Greedy), std::to_underlying(PathAlgorithm::Greedy)),
             std::make_pair(enchantum::to_string(PathAlgorithm::AStar), std::to_underlying(PathAlgorithm::AStar))});
     std::exit(0);
 }
 
 auto ParseArguments(int argc, char *argv[]) -> Arguments {
-    argparse::CLI cli(argc, argv);
+    crt::ArgumentParser parser(argc, argv);
     Arguments args;
     args.monitor_size = GetTerminalSize();
     args.thread_count = std::thread::hardware_concurrency();
@@ -93,32 +96,32 @@ auto ParseArguments(int argc, char *argv[]) -> Arguments {
     args.loop_time = kDefaultLoopTime;
     args.num_entities = kDefaultEntities;
 
-    if (cli.Contains(kHelp)) {
+    if (parser.Contains(kHelp)) {
         PrintHelpMessageAndExit();
     }
 
-    cli.VisitIfContains<int>(kWidth, [&args](int val) {
-        if (val > std::numeric_limits<u16>::max()) {
-            println("Width cannot exceed: {}", std::numeric_limits<u16>::max());
+    parser.VisitIfContains<int>(kWidth, [&args](int val) {
+        if (val > std::numeric_limits<uint16_t>::max()) {
+            println("Width cannot exceed: {}", std::numeric_limits<uint16_t>::max());
             return;
         }
-        args.monitor_size.width = static_cast<u16>(val);
+        args.monitor_size.width = static_cast<uint16_t>(val);
     });
-    cli.VisitIfContains<int>(kHeight, [&args](int val) {
-        if (val > std::numeric_limits<u16>::max()) {
-            println("Height cannot exceed: {}", std::numeric_limits<u16>::max());
+    parser.VisitIfContains<int>(kHeight, [&args](int val) {
+        if (val > std::numeric_limits<uint16_t>::max()) {
+            println("Height cannot exceed: {}", std::numeric_limits<uint16_t>::max());
             return;
         }
-        args.monitor_size.height = static_cast<u16>(val);
+        args.monitor_size.height = static_cast<uint16_t>(val);
     });
     // Set the default here as we now have our monitor size set
     args.num_obstacles = CalculateDefaultObstacles(args.monitor_size);
 
-    cli.VisitIfContains<int>(kEntities, [&args](int val) { args.num_entities = val; });
-    cli.VisitIfContains<int>(kObstacles, [&args](int val) { args.num_obstacles = val; });
-    cli.VisitIfContains<int>(kThreads, [&args](int val) { args.thread_count = val; });
-    cli.VisitIfContains<int>(kLoopTime, [&args](int val) { args.loop_time = std::chrono::milliseconds(val); });
-    cli.VisitIfContains<int>(kAlgorithm, [&args](int val) {
+    parser.VisitIfContains<int>(kEntities, [&args](int val) { args.num_entities = val; });
+    parser.VisitIfContains<int>(kObstacles, [&args](int val) { args.num_obstacles = val; });
+    parser.VisitIfContains<int>(kThreads, [&args](int val) { args.thread_count = val; });
+    parser.VisitIfContains<int>(kLoopTime, [&args](int val) { args.loop_time = std::chrono::milliseconds(val); });
+    parser.VisitIfContains<int>(kAlgorithm, [&args](int val) {
         auto algorithm = enchantum::cast<PathAlgorithm>(val);
         if (!algorithm) {
             println("[Argparse] Unknown algorithm: {} !", val);

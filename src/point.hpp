@@ -1,20 +1,19 @@
 #pragma once
 
+#include <cstdint>
 #include <cmath>
 #include <vector>
-
-#include <oryx/types.hpp>
 
 namespace oryx {
 
 struct Size {
-    u16 width;
-    u16 height;
+    uint16_t width;
+    uint16_t height;
 };
 
 struct Point {
-    u16 x;
-    u16 y;
+    uint16_t x;
+    uint16_t y;
 
     auto DistanceTo(Point dest) const -> int { return std::abs(dest.x - x) + std::abs(dest.y - y); }
     auto IsWithin(Size size) const -> bool { return (x >= 0 && x < size.width) && (y >= 0 && y < size.height); }

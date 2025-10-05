@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <span>
 
-#include <oryx/types.hpp>
-
 #include "point.hpp"
 
 namespace oryx {

@@ -1,4 +1,5 @@
 #include <atomic>
+#include <cstdint>
 #include <random>
 #include <thread>
 #include <format>
@@ -7,10 +8,9 @@
 #include <csignal>
 #include <algorithm>
 
-#include <oryx/thread_pool.hpp>
-#include <oryx/enchantum.hpp>
-#include <oryx/types.hpp>
-#include <oryx/chrono/cycle_timer.hpp>
+#include <oryx/crt/thread_pool.hpp>
+#include <oryx/crt/enchantum.hpp>
+#include <oryx/crt/cycle_timer.hpp>
 
 #include "monitor.hpp"
 #include "entity.hpp"
@@ -69,7 +69,7 @@ void MainLoop(const Arguments &args) {
     monitor.SetHeader(std::format("Config: Loop time: {} Thread Count: {} Obstacles: {} Algorithm: {}", args.loop_time,
                                   pool.get_thread_count(), obstacles.size(), enchantum::to_string(args.algorithm)));
     Profiler profiler{};
-    u64 completed_missions{};
+    uint64_t completed_missions{};
     size_t num_entities = system.NumEntities();
 
     DrawObstacles(&monitor, obstacles);
@@ -78,10 +78,10 @@ void MainLoop(const Arguments &args) {
     info.reserve(64);
     pending_missions.reserve(num_entities);
 
-    oryx::chrono::CycleTimer cycle_timer{args.loop_time};
+    crt::CycleTimer cycle_timer{args.loop_time};
 
     while (!stop_requested) {
-        auto timer_reset = oryx::chrono::MakeScopedCycleTimerReset(cycle_timer);
+        auto timer_reset = crt::MakeScopedCycleTimerReset(cycle_timer);
         auto ids = system.Update();
         profiler.Start();
 

@@ -2,8 +2,6 @@
 
 #include <chrono>
 
-#include <oryx/types.hpp>
-
 #include "point.hpp"
 #include "path_finding.hpp"
 
